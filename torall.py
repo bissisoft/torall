@@ -59,7 +59,7 @@ def usage():
     print("""
         -s    --start      Start TorAll and redirect all traffic through TOR
         -x    --stop       Stop TorAll and redirect all traffic through clearnet
-        -c    --change     Change tor identity -- get a new exit node and ip address
+        -c    --change     Change tor identity -- Change exit node and ip address
         -u    --update     Check for updated version with option to install
         -h    --help       Print this help and exit
     """)

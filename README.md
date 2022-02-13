@@ -11,6 +11,7 @@ chmod +x build.sh
 sudo ./build.sh
 ```
 
+![screenshot](screenshot1.png)
 ## Usage
 ```sh
 sudo torall [option]
@@ -23,3 +24,5 @@ sudo torall [option]
 -u    --update     Check for updated version with option to install
 -h    --help       Print this help and exit
 ```
+
+![screenshot](screenshot2.png)
