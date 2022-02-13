@@ -70,11 +70,11 @@ prerequisites() {
     info "Starting TorAll Installer v1.0"
     info "Installing prerequisites "
     if command -v pacman > /dev/null; then
-        pacman -S --quiet --noconfirm --needed tor python-pip cython
+        pacman -S --quiet --noconfirm --needed tor python-pip cython gcc
         info "Installing dependencies "
         pip3 install stem requests
     elif command -v apt > /dev/null; then
-        apt -y --quiet install tor python3-pip cython3
+        apt -y --quiet install tor python3-pip cython3 gcc
         info "Installing dependencies "
         pip3 install stem requests
     else
@@ -147,6 +147,39 @@ EOF
     fi
 }
 
+generate_c_file() {
+    info "Generating C code from the python scrypt file"
+    mkdir build
+    cd build
+    cython3 ../torall.py --embed -o torall.c --verbose
+    if [ $? -eq 0 ]; then
+        success "Generated C code"
+    else
+        err "Unable to generate C code using cython3"
+    fi
+}
+
+compile_it() {
+    info "Compiling the C code to a static binary file"
+    PY3VER=$(python3 --version | awk '{print$2}' | cut -f 1,2 -d .)
+    gcc -Os -I /usr/include/python${PY3VER} -o torall torall.c -lpython${PY3VER} -lpthread -lm -lutil -ldl
+    if [ $? -eq 0 ]; then
+        success "Compiled to a static binary file"
+    else
+        err "Compilation failed"
+    fi
+}
+
+install() {
+    info "Copying the binary file to /usr/bin"
+    sudo cp -r torall /usr/bin/
+    if [ $? -eq 0 ]; then
+        success "Copied the binary to /usr/bin"
+    else
+        err "Unable to copy binary to /usr/bin"
+    fi
+}
+
 main() {
     check_root
     backup_dir
@@ -154,6 +187,9 @@ main() {
     create_torallrc
     create_nameservers
     create_iptables_rules
+    generate_c_file
+    compile_it
+    install
 }
 
 main
