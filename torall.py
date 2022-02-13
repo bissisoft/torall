@@ -57,10 +57,10 @@ def usage():
     print(bcolors.GREEN + bcolors.BOLD)
     print("        Usage: torall [option]" + bcolors.ENDC)
     print("""
-        -s    --start      Start TorAll
-        -x    --stop       Stop TorAll & reset normal network
-        -c    --change     Change the exit node (get a new ip address)
-        -u    --update     Checks for updates
+        -s    --start      Start TorAll and redirect all traffic through TOR
+        -x    --stop       Stop TorAll and redirect all traffic through clearnet
+        -c    --change     Change tor identity -- get a new exit node and ip address
+        -u    --update     Check for updated version with option to install
         -h    --help       Print this help and exit
     """)
     sys.exit()
@@ -75,8 +75,7 @@ def alert_if_running():
         print_logo()
         print(MARGIN + bcolors.GREEN + bcolors.BOLD + 'TorAll is already running!' + bcolors.ENDC)
         print(MARGIN + bcolors.GREEN + 'All traffic is being redirected through TOR!' + bcolors.ENDC)
-        print(MARGIN + bcolors.BLUE + 'Fetching current IP...' + bcolors.ENDC, end=' ')
-        print(bcolors.GREEN + ip() + bcolors.ENDC)
+        print(MARGIN + bcolors.BLUE + 'Fetching current IP... ' + bcolors.GREEN + ip() + bcolors.ENDC)
         sys.exit()
 
 def alert_if_clearnet():
@@ -88,35 +87,29 @@ def alert_if_clearnet():
         sys.exit()
 
 def stop_tor_service():
-    print(t() + bcolors.BLUE + ' Stopping tor service...' + bcolors.ENDC, end=' ')
     os.system('sudo systemctl stop tor')
     os.system('sudo fuser -k 9051/tcp > /dev/null 2>&1')
-    print(bcolors.GREEN + '[done]' + bcolors.ENDC)
+    print(t() + bcolors.BLUE + ' Stopping tor service... ' + bcolors.GREEN + '[done]' + bcolors.ENDC)
 
 def switch_nameservers():
-    print(t() + bcolors.BLUE  + ' Switching nameservers...' + bcolors.ENDC, end=' ')
     os.system('sudo cp ' + RESOLV + ' ' + RESOLV_BAK)
     os.system('sudo cp ' + NAMESRVS + ' ' + RESOLV)
-    print(bcolors.GREEN + '[done]' + bcolors.ENDC)
+    print(t() + bcolors.BLUE  + ' Switching nameservers... ' + bcolors.GREEN + '[done]' + bcolors.ENDC)
 
 def restore_nameservers():
-    print(t() + bcolors.BLUE  + ' Restoring back your nameservers...' + bcolors.ENDC, end=' ')
     os.system('mv ' + RESOLV_BAK + ' ' + RESOLV)
-    print(bcolors.GREEN + '[done]' + bcolors.ENDC)
+    print(t() + bcolors.BLUE  + ' Restoring back your nameservers... ' + bcolors.GREEN + '[done]' + bcolors.ENDC)
 
 def start_daemon():
-    print(t() + bcolors.BLUE  + ' Starting new tor daemon...' + bcolors.ENDC, end=' ')
     os.system('sudo -u ' + TORUID + ' tor -f /etc/tor/torallrc > /dev/null')
-    print(bcolors.GREEN + '[done]' + bcolors.ENDC)
+    print(t() + bcolors.BLUE  + ' Starting new tor daemon... ' + bcolors.GREEN + '[done]' + bcolors.ENDC)
 
 def set_iptables():
-    print(t() + bcolors.BLUE  + ' Setting up iptables rules...' + bcolors.ENDC, end=' ')
     iptables_rules = open('/var/lib/torall/iptables.conf').read()
     os.system(iptables_rules % subprocess.getoutput('id -ur ' + TORUID))
-    print(bcolors.GREEN + '[done]' + bcolors.ENDC)
+    print(t() + bcolors.BLUE  + ' Setting up iptables rules... ' + bcolors.GREEN + '[done]' + bcolors.ENDC)
 
 def flush_iptables():
-    print(t() + bcolors.BLUE  + ' Flushing iptables, resetting to default...' + bcolors.ENDC, end=' ')
     os.system('iptables -P INPUT ACCEPT')
     os.system('iptables -P FORWARD ACCEPT')
     os.system('iptables -P OUTPUT ACCEPT')
@@ -125,12 +118,11 @@ def flush_iptables():
     os.system('iptables -F')
     os.system('iptables -X')
     os.system('sudo fuser -k 9051/tcp > /dev/null 2>&1')
-    print(bcolors.GREEN + '[done]' + bcolors.ENDC)
+    print(t() + bcolors.BLUE  + ' Flushing iptables, resetting to default... ' + bcolors.GREEN + '[done]' + bcolors.ENDC)
 
 def restart_network_manager():
-    print(t() + bcolors.BLUE  + ' Restarting NetworkManager...' + bcolors.ENDC, end=' ')
     os.system('systemctl restart NetworkManager.service')
-    print(bcolors.GREEN + '[done]' + bcolors.ENDC)
+    print(t() + bcolors.BLUE  + ' Restarting NetworkManager... ' + bcolors.GREEN + '[done]' + bcolors.ENDC)
 
 def ip():
     while True:
@@ -148,48 +140,36 @@ def start_torall():
     print_logo()
     alert_if_running()
     print(MARGIN + bcolors.GREEN + bcolors.BOLD + 'STARTING TorAll service...' + bcolors.ENDC)
-
     if os.system('systemctl is-active --quiet tor') == 0:
         stop_tor_service()
-
     switch_nameservers()
     start_daemon()
     set_iptables()
-
-    print(t() + bcolors.BLUE + ' Fetching current IP...' + bcolors.ENDC, end=' ')
-    print(bcolors.GREEN + ip() + bcolors.ENDC + '\n')
+    print(t() + bcolors.BLUE + ' Fetching current IP... ' + bcolors.GREEN + ip() + bcolors.ENDC + '\n')
     print(MARGIN + bcolors.GREEN + bcolors.BOLD + 'All traffic is being redirected through TOR!' + bcolors.ENDC)
-
     os.system('touch /var/lib/torall/started')
 
 def stop_torall():
     print_logo()
     alert_if_clearnet()
     print(MARGIN + bcolors.RED + bcolors.BOLD + 'STOPPING TorAll service...' + bcolors.ENDC)
-
     restore_nameservers()
     flush_iptables()
     restart_network_manager()
-
     print(t() + bcolors.BLUE  + ' Fetching current IP... ' + bcolors.ENDC + ip() + '\n')
     print(MARGIN + bcolors.RED + bcolors.BOLD + 'You are on the clearnet with your regular ip!' + bcolors.ENDC)
-
     os.system('rm /var/lib/torall/started')
 
 def change_ip():
     print_logo()
     alert_if_clearnet()
-
     print(MARGIN + bcolors.GREEN + bcolors.BOLD + 'Changing exit node...' + bcolors.ENDC)
     print(t() + bcolors.BLUE  + ' Please wait...' + bcolors.ENDC)
-    print(t() + bcolors.BLUE  + ' Requesting new circuit...' + bcolors.ENDC, end=' ')
     with Controller.from_port(port=9051) as controller:
         controller.authenticate()
         controller.signal(Signal.NEWNYM)
-    print(bcolors.GREEN + '[done]' + bcolors.ENDC)
-
-    print(t() + bcolors.BLUE  + ' Fetching current IP...' + bcolors.ENDC, end=' ')
-    print(bcolors.GREEN + ip() + bcolors.ENDC)
+    print(t() + bcolors.BLUE  + ' Requesting new circuit... ' + bcolors.GREEN + '[done]' + bcolors.ENDC)
+    print(t() + bcolors.BLUE  + ' Fetching current IP... ' + bcolors.GREEN + ip() + bcolors.ENDC)
 
 def check_update():
     print_logo()
