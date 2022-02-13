@@ -2,7 +2,7 @@
 TorAll is an anonymization utility tool that redirects all of the system's internet traffic through the TOR network.
 It's an improved fork variation of the old [TorGhost](https://github.com/SusmithKrishnan/torghost)
 
-![screenshot](torall.png)
+![screenshot](screenshot.png)
 ## Install on Debian and/or Arch Linux distributions!
 ```sh
 git clone https://github.com/bissisoft/torall.git
