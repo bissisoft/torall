@@ -27,7 +27,6 @@ class clr:
     END = '\033[0m'
     BOLD = '\033[1m'
     GREEN = '\033[92m'
-    WHITE = '\033[37m'
     YELLOW = '\033[33m'
 
 
@@ -40,14 +39,13 @@ def print_logo():
     os.system('clear')
     print(clr.RED + clr.BOLD)
     print("""
-           _____________________   /\  ___  ___
-          /    TorAll - v{V}   // /  \ \  \ \  \{R}
-         /___    _____________// /    \ \  \ \  \{R}
-            /   //{Y}__{G}\V/{R}   __ __ /  /\  \ \  \ \  \{R}
+         _______________          ____  ___  ___
+        /____    _____//         /    \ \  \ \  \{R}
+            /   //{Y}___{G}V/{R}   __ __ /  /\  \ \  \ \  \{R}
            /   /{Y}/  _  \. {R}/  ,._|  //_\  \ \  \ \  \{R}
-         _/   ({Y}(  (O)  )) {R} // /  ______  \ \  \_\  \_
-        /_____//{Y}\_____//{R}\_//  \_//     \  ),\__//\__//
-        {G}v{V} {B}github.com/bissisoft/torall{R}\//
+         _/   ({Y}(  (O)  )){R}  // /  ______  \ \  \_\  \_
+        /_____//{Y}\_____//{R}\_//  \_//     \_// \__//\__//
+        {G}v{V} - {B}github.com/bissisoft/torall
     """.format(R=clr.RED, G=clr.GREEN, B=clr.BLUE, Y=clr.YELLOW, V=VERSION))
     print(clr.END)
 
