@@ -2,7 +2,7 @@
 TorAll is an anonymization utility tool that redirects all of the system's internet traffic through the TOR network.
 It's an improved fork variation of the old [TorGhost](https://github.com/SusmithKrishnan/torghost)
 
-![screenshot](https://bissisoft.com/torall-1.png)
+![screenshot](https://bissisoft.com/torall_2.png)
 ## Install on Debian and/or Arch Linux distributions!
 ```sh
 git clone https://github.com/bissisoft/torall.git
@@ -11,7 +11,7 @@ chmod +x build.sh
 sudo ./build.sh
 ```
 
-![screenshot](https://bissisoft.com/torall-2.png)
+![screenshot](https://bissisoft.com/torall_1.png)
 ## Usage
 ```sh
 sudo torall [option]
@@ -25,4 +25,4 @@ sudo torall [option]
 -h    --help      Print this help and exit
 ```
 
-![screenshot](https://bissisoft.com/torall-3.png)
+![screenshot](https://bissisoft.com/torall_3.png)
