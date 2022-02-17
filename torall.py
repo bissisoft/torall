@@ -10,6 +10,7 @@ from stem import Signal
 from stem.control import Controller
 from packaging import version
 from requests import get
+import time
 
 VERSION = "1.0"
 IPAPI = "https://api.ipify.org/?format=json"
@@ -31,7 +32,7 @@ class clr:
 
 
 def sigint_handler(signum, frame):
-    print("User interrupt ! shutting down")
+    print("User interrupted! Stopping TorAll service...")
     stop_torall()
 
 
@@ -45,7 +46,7 @@ def print_logo():
            /   /{Y}/  _  \. {R}/  ,._|  //_\  \ \  \ \  \{R}
          _/   ({Y}(  (O)  )){R}  // /  ______  \ \  \_\  \_
         /_____//{Y}\_____//{R}\_//  \_//     \_// \__//\__//
-        {G}v{V} - {B}github.com/bissisoft/torall
+        {G}v{V} {B}- github.com/bissisoft/torall
     """.format(R=clr.RED, G=clr.GREEN, B=clr.BLUE, Y=clr.YELLOW, V=VERSION))
     print(clr.END)
 
@@ -76,19 +77,19 @@ def backup_sysctl():
 
 def restore_sysctl():
     print(MARGIN + clr.BLUE + 'Restoring sysctl...' + clr.END)
-    os.system('sysctl -p /var/lib/torall/sysctl.conf.bak &>"/dev/null"')
+    os.system('sysctl -p /var/lib/torall/sysctl.conf.bak >/dev/null 2>&1')
 
 
 def disable_ipv6():
     print(MARGIN + clr.BLUE + 'Disabling IPv6...' + clr.END)
-    os.system('sysctl -w net.ipv6.conf.all.disable_ipv6=1 &>"/dev/null"')
-    os.system('sysctl -w net.ipv6.conf.default.disable_ipv6=1 &>"/dev/null"')
+    os.system('sysctl -w net.ipv6.conf.all.disable_ipv6=1 >/dev/null')
+    os.system('sysctl -w net.ipv6.conf.default.disable_ipv6=1 >/dev/null')
 
 
 def alert_if_running():
     if os.path.exists('/var/lib/torall/started'):
         print_logo()
-        print(MARGIN + clr.GREEN + clr.BOLD + 'TorAll is already running!' + clr.END)
+        print(MARGIN + clr.GREEN + clr.BOLD + 'TorAll is running...' + clr.END)
         print(MARGIN + clr.BLUE + 'Fetching current IP... ' +
               clr.GREEN + ip() + clr.END)
         print(MARGIN + clr.GREEN +
@@ -105,35 +106,66 @@ def alert_if_clearnet():
         sys.exit()
 
 
-def stop_tor_service():
-    os.system('sudo systemctl stop tor')
-    os.system('sudo fuser -k 9051/tcp > /dev/null 2>&1')
-    print(MARGIN + clr.BLUE + 'Stopping tor service... ' + clr.END)
-
-
 def switch_nameservers():
+    print(MARGIN + clr.BLUE + 'Switching nameservers...' + clr.END)
     os.system('sudo cp ' + RESOLV + ' ' + RESOLVBAK)
     os.system('sudo cp ' + NAMESRVS + ' ' + RESOLV)
-    print(MARGIN + clr.BLUE + 'Switching nameservers... ' + clr.END)
 
 
 def restore_nameservers():
+    print(MARGIN + clr.BLUE + 'Restoring nameservers...' + clr.END)
     os.system('mv ' + RESOLVBAK + ' ' + RESOLV)
-    print(MARGIN + clr.BLUE + 'Restoring back your nameservers... ' + clr.END)
 
 
 def start_daemon():
-    os.system('sudo -u ' + TORUID + ' tor -f /etc/tor/torallrc > /dev/null')
-    print(MARGIN + clr.BLUE + 'Starting new tor daemon... ' + clr.END)
+    print(MARGIN + clr.BLUE + 'Starting new tor daemon...' + clr.END)
+    os.system('sudo -u ' + TORUID + ' tor -f /etc/tor/torallrc >/dev/null')
+
+
+def stop_daemon():
+    print(MARGIN + clr.BLUE + 'Stopping tor daemon...' + clr.END)
+    os.system('sudo systemctl stop tor')
+    os.system('sudo fuser -k 9051/tcp >/dev/null 2>&1')
+
+
+def disable_firewall():
+    if os.system('command -v ufw >/dev/null') == 0:
+        if os.system('! ufw status | grep -q inactive$') == 0:
+            print(MARGIN + clr.RED + 'Disabling UFW firewall...')
+            os.system('ufw disable >/dev/null 2>&1')
+        else:
+            backup_iptables()
+    else:
+        backup_iptables()
+
+
+def enable_firewall():
+    if os.path.exists('/var/lib/torall/iptables.rules.bak'):
+        restore_iptables()
+        os.system('rm /var/lib/torall/iptables.rules.bak')
+    else:
+        print(MARGIN + clr.RED + 'Enabling back UFW firewall...')
+        os.system('ufw enable >/dev/null 2>&1')
+
+
+def backup_iptables():
+    print(MARGIN + clr.BLUE + 'Backing up iptables rules...' + clr.END)
+    os.system('iptables-save >/var/lib/torall/iptables.rules.bak')
+
+
+def restore_iptables():
+    print(MARGIN + clr.BLUE + 'Restoring iptables rules...' + clr.END)
+    os.system('iptables-restore </var/lib/torall/iptables.rules.bak')
 
 
 def set_iptables():
+    print(MARGIN + clr.BLUE + 'Setting up new iptables rules...' + clr.END)
     iptables_rules = open('/var/lib/torall/iptables.conf').read()
     os.system(iptables_rules % subprocess.getoutput('id -ur ' + TORUID))
-    print(MARGIN + clr.BLUE + 'Setting up iptables rules... ' + clr.END)
 
 
 def flush_iptables():
+    print(MARGIN + clr.BLUE + 'Flushing iptables...' + clr.END)
     os.system('iptables -P INPUT ACCEPT')
     os.system('iptables -P FORWARD ACCEPT')
     os.system('iptables -P OUTPUT ACCEPT')
@@ -141,13 +173,13 @@ def flush_iptables():
     os.system('iptables -t mangle -F')
     os.system('iptables -F')
     os.system('iptables -X')
-    os.system('sudo fuser -k 9051/tcp > /dev/null 2>&1')
-    print(MARGIN + clr.BLUE + 'Flushing iptables, resetting to default... ' + clr.END)
 
 
 def restart_network_manager():
-    os.system('systemctl restart NetworkManager.service')
-    print(MARGIN + clr.BLUE + 'Restarting NetworkManager... ' + clr.END)
+    print(MARGIN + clr.BLUE + 'Restarting NetworkManager...' + clr.END)
+    os.system('systemctl stop NetworkManager.service')
+    time.sleep(3)
+    os.system('systemctl start NetworkManager.service')
 
 
 def ip():
@@ -169,14 +201,15 @@ def start_torall():
     alert_if_running()
     print(MARGIN + clr.GREEN + clr.BOLD + 'STARTING TorAll...' + clr.END)
     if os.system('systemctl is-active --quiet tor') == 0:
-        stop_tor_service()
+        stop_daemon()
     switch_nameservers()
     backup_sysctl()
     disable_ipv6()
     start_daemon()
+    disable_firewall()
     set_iptables()
-    print(MARGIN + clr.BLUE + 'Fetching new IP... ' + clr.GREEN + ip() + clr.END + '\n')
-    print(MARGIN + clr.GREEN + clr.BOLD +
+    print(MARGIN + clr.BLUE + 'Fetching new IP... ' + clr.GREEN + ip() + clr.END)
+    print('\n' + MARGIN + clr.GREEN + clr.BOLD +
           'All traffic is being redirected through TOR!' + clr.END)
     os.system('touch /var/lib/torall/started')
 
@@ -188,6 +221,8 @@ def stop_torall():
     restore_nameservers()
     restore_sysctl()
     flush_iptables()
+    stop_daemon()
+    enable_firewall()
     restart_network_manager()
     print(MARGIN + clr.BLUE + 'Fetching current IP... ' + clr.END + ip() + '\n')
     print(MARGIN + clr.RED + clr.BOLD +
@@ -199,11 +234,10 @@ def change_ip():
     print_logo()
     alert_if_clearnet()
     print(MARGIN + clr.GREEN + clr.BOLD + 'Changing tor identity...' + clr.END)
-    # print(MARGIN + clr.BLUE + 'Please wait...' + clr.END)
+    print(MARGIN + clr.BLUE + 'Requesting new onion circuit...' + clr.END)
     with Controller.from_port(port=9051) as controller:
         controller.authenticate()
         controller.signal(Signal.NEWNYM)
-    print(MARGIN + clr.BLUE + 'Requesting new onion circuit...' + clr.END)
     print(MARGIN + clr.BLUE + 'Fetching new IP... ' + clr.GREEN + ip() + clr.END)
 
 
