@@ -69,6 +69,22 @@ def check_root():
         sys.exit(0)
 
 
+def backup_sysctl():
+    print(MARGIN + clr.BLUE + 'Backing up sysctl...' + clr.END)
+    os.system('sysctl -a >/var/lib/torall/sysctl.conf.bak')
+
+
+def restore_sysctl():
+    print(MARGIN + clr.BLUE + 'Restoring sysctl...' + clr.END)
+    os.system('sysctl -p /var/lib/torall/sysctl.conf.bak &>"/dev/null"')
+
+
+def disable_ipv6():
+    print(MARGIN + clr.BLUE + 'Disabling IPv6...' + clr.END)
+    os.system('sysctl -w net.ipv6.conf.all.disable_ipv6=1 &>"/dev/null"')
+    os.system('sysctl -w net.ipv6.conf.default.disable_ipv6=1 &>"/dev/null"')
+
+
 def alert_if_running():
     if os.path.exists('/var/lib/torall/started'):
         print_logo()
@@ -155,6 +171,8 @@ def start_torall():
     if os.system('systemctl is-active --quiet tor') == 0:
         stop_tor_service()
     switch_nameservers()
+    backup_sysctl()
+    disable_ipv6()
     start_daemon()
     set_iptables()
     print(MARGIN + clr.BLUE + 'Fetching new IP... ' + clr.GREEN + ip() + clr.END + '\n')
@@ -168,6 +186,7 @@ def stop_torall():
     alert_if_clearnet()
     print(MARGIN + clr.RED + clr.BOLD + 'STOPPING TorAll service...' + clr.END)
     restore_nameservers()
+    restore_sysctl()
     flush_iptables()
     restart_network_manager()
     print(MARGIN + clr.BLUE + 'Fetching current IP... ' + clr.END + ip() + '\n')
