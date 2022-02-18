@@ -249,19 +249,23 @@ def check_update():
         yes = {'yes', 'y', 'ye', ''}
         no = {'no', 'n'}
         user_input = False
-        msg = MARGIN + clr.BOLD + "Upgrade to new version? [Y/n] " + clr.END
+        msg = MARGIN + clr.BOLD + "Update to new version? [Y/n] " + clr.END
         while not user_input:
             choice = input(msg).lower()
             if choice in yes:
                 print('\n' + MARGIN + clr.GREEN +
-                      'Upgrading...' + clr.END + '\n')
+                      'Updating your version...' + clr.END + '\n')
+                os.system('mv /usr/bin/torall /tmp/torall.old')
                 os.system(
                     'cd /tmp && git clone  https://github.com/bissisoft/torall')
                 os.system('cd /tmp/torall && sudo ./build.sh')
-                user_input = True
+                print('\n' + MARGIN + clr.GREEN + 'Done!' + clr.END + '\n')
+                input(MARGIN + clr.BOLD + 'Press any key to restart ^.^  ')
+                os.system('torall')
+                sys.exit()
             elif choice in no:
                 print('\n' + MARGIN + clr.RED +
-                      'Upgrade aborted by user' + clr.END)
+                      'Update aborted by user' + clr.END)
                 user_input = True
             else:
                 msg = '\n' + MARGIN + "Please respond with 'yes' or 'no' "
