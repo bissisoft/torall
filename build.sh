@@ -67,7 +67,7 @@ backup_dir() {
 }
 
 prerequisites() {
-    info "Starting TorAll Installer v1.0"
+    info "Starting TorAll Installer v1.5"
     info "Installing prerequisites "
     if command -v pacman > /dev/null; then
         pacman -S --quiet --noconfirm --needed tor python-pip cython gcc
