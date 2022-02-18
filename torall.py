@@ -12,13 +12,10 @@ from packaging import version
 from requests import get
 import time
 
-VERSION = "1.0"
+VERSION = "1.5"
 IPAPI = "https://api.ipify.org/?format=json"
 LATEST = "https://api.github.com/repos/bissisoft/torall/releases/latest"
 TORUID = "tor" if os.path.exists('/usr/bin/pacman') else "debian-tor"
-RESOLV = "/etc/resolv.conf"
-RESOLVBAK = "/var/lib/torall/resolv.conf.bak"
-NAMESRVS = "/var/lib/torall/nameservers.conf"
 MARGIN = "        "
 
 
@@ -108,13 +105,13 @@ def alert_if_clearnet():
 
 def switch_nameservers():
     print(MARGIN + clr.BLUE + 'Switching nameservers...' + clr.END)
-    os.system('sudo cp ' + RESOLV + ' ' + RESOLVBAK)
-    os.system('sudo cp ' + NAMESRVS + ' ' + RESOLV)
+    os.system('cp /etc/resolv.conf /var/lib/torall/resolv.conf.bak')
+    os.system('cp /var/lib/torall/nameservers.conf /etc/resolv.conf')
 
 
 def restore_nameservers():
     print(MARGIN + clr.BLUE + 'Restoring nameservers...' + clr.END)
-    os.system('mv ' + RESOLVBAK + ' ' + RESOLV)
+    os.system('mv /var/lib/torall/resolv.conf.bak /etc/resolv.conf')
 
 
 def start_daemon():
@@ -124,8 +121,8 @@ def start_daemon():
 
 def stop_daemon():
     print(MARGIN + clr.BLUE + 'Stopping tor daemon...' + clr.END)
-    os.system('sudo systemctl stop tor')
-    os.system('sudo fuser -k 9051/tcp >/dev/null 2>&1')
+    os.system('systemctl stop tor.service')
+    os.system('fuser -k 9051/tcp >/dev/null 2>&1')
 
 
 def disable_firewall():
@@ -177,9 +174,7 @@ def flush_iptables():
 
 def restart_network_manager():
     print(MARGIN + clr.BLUE + 'Restarting NetworkManager...' + clr.END)
-    os.system('systemctl stop NetworkManager.service')
-    time.sleep(3)
-    os.system('systemctl start NetworkManager.service')
+    os.system('systemctl restart NetworkManager.service')
 
 
 def ip():
@@ -246,7 +241,8 @@ def check_update():
     response = get(LATEST).json()
     latest = response["tag_name"][1:]
     if version.parse(latest) > version.parse(VERSION):
-        print(MARGIN + clr.GREEN + clr.BOLD + 'New update available!\n' + clr.END)
+        print(MARGIN + clr.GREEN + clr.BOLD +
+              'New update available!\n' + clr.END)
         print(MARGIN + 'Your TorAll version: ' + clr.RED + VERSION + clr.END)
         print(MARGIN + 'Latest TorAll version: ' +
               clr.GREEN + latest + clr.END + '\n')
@@ -257,19 +253,23 @@ def check_update():
         while not user_input:
             choice = input(msg).lower()
             if choice in yes:
-                print('\n' + MARGIN + clr.GREEN + 'Upgrading...' + clr.END + '\n')
-                os.system('cd /tmp && git clone  https://github.com/bissisoft/torall')
+                print('\n' + MARGIN + clr.GREEN +
+                      'Upgrading...' + clr.END + '\n')
+                os.system(
+                    'cd /tmp && git clone  https://github.com/bissisoft/torall')
                 os.system('cd /tmp/torall && sudo ./build.sh')
                 user_input = True
             elif choice in no:
-                print('\n' + MARGIN + clr.RED + 'Upgrade aborted by user' + clr.END)
+                print('\n' + MARGIN + clr.RED +
+                      'Upgrade aborted by user' + clr.END)
                 user_input = True
             else:
                 msg = '\n' + MARGIN + "Please respond with 'yes' or 'no' "
     else:
         print(MARGIN + clr.RED + 'No new update available!\n' + clr.END)
         print(MARGIN + 'Your version... ' + clr.GREEN + VERSION + clr.END)
-        print(MARGIN + 'Latest version: ' + clr.GREEN + latest + clr.END + '\n')
+        print(MARGIN + 'Latest version: ' +
+              clr.GREEN + latest + clr.END + '\n')
         print(MARGIN + clr.BOLD + 'TorAll is up to date!')
 
 
@@ -280,7 +280,8 @@ def main():
         usage()
     try:
         (opts, args) = getopt.getopt(
-            sys.argv[1:], 'sxcuh', ['start', 'stop', 'change', 'update', 'help']
+            sys.argv[1:], 'sxcuh', [
+                'start', 'stop', 'change', 'update', 'help']
         )
         if len(opts) == 0:
             usage()
