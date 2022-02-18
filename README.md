@@ -2,18 +2,15 @@
 🧅 TorAll is an anonymization utility tool that redirects all of the system's internet traffic through the TOR network. 🥸
 It's an improved fork variation of the good old [TorGhost](https://github.com/SusmithKrishnan/torghost) 👻 It redirects all internet traffic through SOCKS5 tor proxy, preventing DNS leaks, and unsafe packets exiting the system.
 
-- 1st we wanted to fix some bugs 🐞
+- First of all we wanted to fix some bugs 🐞 and maintain a repo with the latest updates and bug fixes.
 
-- Then we also wanted to make it compatible with Arch Linux distros for the "BTW I use Arch" crowd 😜
+- We also wanted to make it compatible with and support Arch Linux distributions for the "BTW I use Arch" crowd 😜
 
-- And lastly we wanted to add some enhancements and extra features such as:
+- And last but not least; We wanted to add some enhancements and extra features such as:
 
-  - [x] #7 Auto disabling IPv6 on start and re-enabling it back after stop (if it was enabled before the start).
-
-  - [ ] https://github.com/bissisoft/torall/issues/9 - Integrate MAC address spoofing by default.
-
+  - [x] [Auto disable IPv6](https://github.com/bissisoft/torall/issues/7) on start and re-enabling it back after stop (if it was enabled before the start).
+  - [ ] [Integrate MAC address spoofing by default](https://github.com/bissisoft/torall/issues/9)
   - [ ] Other extra enhancements, feature requests, and good ideas by users like you. So, don't hesitate to open an issue with feature requests, ideas, questions, bug reports etc.
-
 
 ![screenshot](https://bissisoft.com/torall.v1.0.1.png)
 ## Install on Debian and/or Arch Linux distributions!
