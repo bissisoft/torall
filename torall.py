@@ -6,8 +6,6 @@ import sys
 import getopt
 import signal
 import subprocess
-from stem import Signal
-from stem.control import Controller
 from packaging import version
 from requests import get
 import time
@@ -225,14 +223,14 @@ def stop_torall():
     os.system('rm /var/lib/torall/started')
 
 
-def change_ip():
+def change_id():
     print_logo()
     alert_if_clearnet()
     print(MARGIN + clr.GREEN + clr.BOLD + 'Changing tor identity...' + clr.END)
     print(MARGIN + clr.BLUE + 'Requesting new onion circuit...' + clr.END)
-    with Controller.from_port(port=9051) as controller:
-        controller.authenticate()
-        controller.signal(Signal.NEWNYM)
+    os.system('fuser -k 9051/tcp >/dev/null 2>&1')
+    time.sleep(1)
+    os.system('sudo -u ' + TORUID + ' tor -f /etc/tor/torallrc >/dev/null')
     print(MARGIN + clr.BLUE + 'Fetching new IP... ' + clr.GREEN + ip() + clr.END)
 
 
@@ -298,7 +296,7 @@ def main():
         elif o in ('-x', '--stop'):
             stop_torall()
         elif o in ('-c', '--change'):
-            change_ip()
+            change_id()
         elif o in ('-u', '--update'):
             check_update()
         elif o in ('-h', '--help'):
