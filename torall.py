@@ -112,6 +112,24 @@ def restore_nameservers():
     os.system('mv /var/lib/torall/resolv.conf.bak /etc/resolv.conf')
 
 
+def spoof_mac_addresses():
+    print(MARGIN + clr.BLUE + 'Spoofing mac addresses...' + clr.END)
+    for iface in os.listdir('/sys/class/net/'):
+        if iface != 'lo':
+            os.system('ip link set ' + iface + ' down >/dev/null')
+            os.system('macchanger -r ' + iface + ' >/dev/null 2>&1')
+            os.system('ip link set ' + iface + ' up >/dev/null')
+
+
+def revert_mac_addresses():
+    print(MARGIN + clr.BLUE + 'Reverting mac addresses...' + clr.END)
+    for iface in os.listdir('/sys/class/net/'):
+        if iface != 'lo':
+            os.system('ip link set ' + iface + ' down >/dev/null')
+            os.system('macchanger -p ' + iface + ' >/dev/null 2>&1')
+            os.system('ip link set ' + iface + ' up >/dev/null')
+
+
 def start_daemon():
     print(MARGIN + clr.BLUE + 'Starting new tor daemon...' + clr.END)
     os.system('sudo -u ' + TORUID + ' tor -f /etc/tor/torallrc >/dev/null')
@@ -195,6 +213,7 @@ def start_torall():
     print(MARGIN + clr.GREEN + clr.BOLD + 'STARTING TorAll...' + clr.END)
     if os.system('systemctl is-active --quiet tor') == 0:
         stop_daemon()
+    # spoof_mac_addresses()
     switch_nameservers()
     backup_sysctl()
     disable_ipv6()
@@ -215,6 +234,7 @@ def stop_torall():
     restore_sysctl()
     flush_iptables()
     stop_daemon()
+    # revert_mac_addresses()
     enable_firewall()
     restart_network_manager()
     print(MARGIN + clr.BLUE + 'Fetching current IP... ' + clr.END + ip() + '\n')

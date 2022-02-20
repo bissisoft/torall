@@ -70,11 +70,11 @@ prerequisites() {
     info "Starting TorAll Installer v1.5"
     info "Installing prerequisites "
     if command -v pacman > /dev/null; then
-        pacman -S --quiet --noconfirm --needed tor python-pip cython gcc
+        pacman -S --quiet --noconfirm --needed tor macchanger python-pip cython gcc
         info "Installing dependencies "
         pip3 install requests
     elif command -v apt > /dev/null; then
-        apt -y --quiet install tor python3-pip cython3 gcc
+        apt -y --quiet install tor macchanger python3-pip cython3 gcc
         info "Installing dependencies "
         pip3 install requests
     else
