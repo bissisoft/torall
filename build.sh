@@ -72,11 +72,11 @@ prerequisites() {
     if command -v pacman > /dev/null; then
         pacman -S --quiet --noconfirm --needed tor python-pip cython gcc
         info "Installing dependencies "
-        pip3 install stem requests
+        pip3 install requests
     elif command -v apt > /dev/null; then
         apt -y --quiet install tor python3-pip cython3 gcc
         info "Installing dependencies "
-        pip3 install stem requests
+        pip3 install requests
     else
         err "Unknown distro! TorAll currently supports only Arch and Debian based distros."
     fi
