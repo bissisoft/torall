@@ -2,12 +2,12 @@
 
 RED=""
 REDB=""
-YELLOW=""
-YELLOWB=""
-GREEN=""
-GREENB=""
 BLUE=""
 BLUEB=""
+GREEN=""
+GREENB=""
+YELLOW=""
+YELLOWB=""
 RESET=""
 
 if [ -t 1 ]; then
@@ -145,7 +145,7 @@ EOF
 }
 
 generate_c_file() {
-    info "Generating C code from the python scrypt file"
+    info "Generating C code from the python script file"
     mkdir -p build
     cd build
     cython3 ../torall.py --embed -3 -o torall.c

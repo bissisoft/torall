@@ -4,18 +4,28 @@ It's an improved fork variation of the good old [TorGhost](https://github.com/Su
 
 ## Features
 - **TorAll installs on and supports:**
+
   - GNU/Linux distributions based on **Arch Linux**.
+
   - GNU/Linux distributions based on **Debian/Ubuntu**.
+
 - [Auto disable/re-enable IPv6](https://github.com/bissisoft/torall/issues/7)
+
   - TorAll will auto disable IPv6 when it starts in order to prevent IPv6 leaks.
+
   - IPv6 will be re-enabled when it stops (if it was active before the start).
+
 - [MAC address spoofing by default](https://github.com/bissisoft/torall/issues/9)
+
   - TorAll will spoof all network interface mac addresses when it starts.
+
   - Reset the spoofed interfaces to the original, permanent hardware MAC when it stops.
-- [Auto disables/re-enables UFW firewall](https://github.com/bissisoft/torall/issues/5) (if status was active on start) as it conflicts with the iptables manipulations; However, it is strongly recommended to manually disable any firewall that is active, especially if the firewall is not UFW.
+
+- [Auto disables/re-enables UFW firewall](https://github.com/bissisoft/torall/issues/5) (if the status was active on start) because it conflicts with the iptables; However, *it is strongly recommended to manually disable any active firewall during the use of TorAll, especially if the firewall* ***is not*** *UFW.*
+
 - **Other extra enhancements...** From feature requests and ideas by users like you. So, don't hesitate to open issues with feature requests, ideas, questions, bug reports etc.
 
-![screenshot](https://bissisoft.com/torall.v1.0.1.png)
+![screenshot](https://bissisoft.com/torall.v2.0.1.png)
 
 ## Install on Debian and/or Arch Linux distributions!
 ```sh
@@ -25,7 +35,7 @@ chmod +x build.sh
 sudo ./build.sh
 ```
 
-![screenshot](https://bissisoft.com/torall.v1.0.2.png)
+![screenshot](https://bissisoft.com/torall.v2.0.2.png)
 
 ## Usage
 ```sh
@@ -40,7 +50,7 @@ sudo torall [option]
 -h    --help      Print this help and exit
 ```
 
-![screenshot](https://bissisoft.com/torall.v1.0.3.png)
+![screenshot](https://bissisoft.com/torall.v2.0.3.png)
 
 ## Developed and tested on Kali Linux and Black Arch.
 
