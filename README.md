@@ -12,7 +12,7 @@ It's an improved fork variation of the good old [TorGhost](https://github.com/Su
 - [MAC address spoofing by default](https://github.com/bissisoft/torall/issues/9)
   - TorAll will spoof all network interface mac addresses when it starts.
   - Reset the spoofed interfaces to the original, permanent hardware MAC when it stops.
-- [Auto disables/re-enables UFW firewall](https://github.com/bissisoft/torall/issues/5) (if it's status is active) as it conflicts with the iptables manipulations; However, it is recommended to manually disable any firewall that is active.
+- [Auto disables/re-enables UFW firewall](https://github.com/bissisoft/torall/issues/5) (if status was active on start) as it conflicts with the iptables manipulations; However, it is strongly recommended to manually disable any firewall that is active, especially if the firewall is not UFW.
 - **Other extra enhancements...** From feature requests and ideas by users like you. So, don't hesitate to open issues with feature requests, ideas, questions, bug reports etc.
 
 ![screenshot](https://bissisoft.com/torall.v1.0.1.png)

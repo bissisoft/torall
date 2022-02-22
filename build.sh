@@ -67,8 +67,8 @@ backup_dir() {
 }
 
 prerequisites() {
-    info "Starting TorAll Installer v1.5"
-    info "Installing prerequisites "
+    info "Starting TorAll v2.0 Installer"
+    info "Checking and installing dependencies if needed..."
     if command -v pacman > /dev/null; then
         pacman -S --quiet --noconfirm --needed tor macchanger cython gcc python-pip
     elif command -v apt > /dev/null; then
@@ -76,8 +76,7 @@ prerequisites() {
     else
         err "Unknown distro! TorAll currently supports only Arch and Debian based distros."
     fi
-    info "Installing dependencies "
-    pip3 install requests -q
+    pip3 install requests -qq
 }
 
 create_torallrc() {
@@ -147,9 +146,9 @@ EOF
 
 generate_c_file() {
     info "Generating C code from the python scrypt file"
-    mkdir build
+    mkdir -p build
     cd build
-    cython3 ../torall.py --embed -o torall.c --verbose
+    cython3 ../torall.py --embed -3 -o torall.c
     if [ $? -eq 0 ]; then
         success "Generated C code"
     else
