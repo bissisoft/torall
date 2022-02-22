@@ -70,16 +70,14 @@ prerequisites() {
     info "Starting TorAll Installer v1.5"
     info "Installing prerequisites "
     if command -v pacman > /dev/null; then
-        pacman -S --quiet --noconfirm --needed tor macchanger python-pip cython gcc
-        info "Installing dependencies "
-        pip3 install requests
+        pacman -S --quiet --noconfirm --needed tor macchanger cython gcc python-pip
     elif command -v apt > /dev/null; then
-        apt -y --quiet install tor macchanger python3-pip cython3 gcc
-        info "Installing dependencies "
-        pip3 install requests
+        apt -y --quiet install tor macchanger cython3 gcc python3-pip
     else
         err "Unknown distro! TorAll currently supports only Arch and Debian based distros."
     fi
+    info "Installing dependencies "
+    pip3 install requests -q
 }
 
 create_torallrc() {
