@@ -114,16 +114,24 @@ def restore_nameservers():
 
 def spoof_mac_addresses():
     print(MARGIN + clr.BLUE + 'Spoofing mac addresses...' + clr.END)
-    for iface in os.listdir('/sys/class/net/'):
-        if iface != 'lo':
-            os.system('macchanger -r ' + iface + ' >/dev/null 2>&1')
+    for interface in os.listdir('/sys/class/net/'):
+        if interface != 'lo' and interface[0] == 'e':
+            os.system('macchanger -r ' + interface + ' >/dev/null 2>&1')
+        elif interface != 'lo' and interface[0] == 'w':
+            os.system('ip link set ' + interface + ' down')
+            os.system('macchanger -r ' + interface + ' >/dev/null 2>&1')
+            os.system('ip link set ' + interface + ' up')
 
 
 def revert_mac_addresses():
     print(MARGIN + clr.BLUE + 'Resetting mac addresses...' + clr.END)
-    for iface in os.listdir('/sys/class/net/'):
-        if iface != 'lo':
-            os.system('macchanger -p ' + iface + ' >/dev/null 2>&1')
+    for interface in os.listdir('/sys/class/net/'):
+        if interface != 'lo' and interface[0] == 'e':
+            os.system('macchanger -p ' + interface + ' >/dev/null 2>&1')
+        elif interface != 'lo' and interface[0] == 'w':
+            os.system('ip link set ' + interface + ' down')
+            os.system('macchanger -p ' + interface + ' >/dev/null 2>&1')
+            os.system('ip link set ' + interface + ' up')
 
 
 def start_daemon():
