@@ -198,13 +198,16 @@ def restart_network_manager():
 
 
 def ip():
-    while True:
+    ip = 'unknown'
+    try:
+        ip = subprocess.getoutput('curl -s --max-time 30 https://api.ipify.org')
+    except KeyboardInterrupt:
+        return "User interrupted!"
+    if ip == 'unknown':
         try:
-            response = get(IPAPI).json()
-            ip = response["ip"]
-        except:
-            continue
-        break
+            ip = subprocess.getoutput('curl -s --max-time 30 https://ip.me')
+        except KeyboardInterrupt:
+            return "User interrupted!"
     return ip
 
 
