@@ -6,22 +6,20 @@ import sys
 import getopt
 import signal
 import subprocess
-from packaging import version
-from requests import get
+from json import loads, JSONDecodeError
 import time
 
-VERSION = "2.0"
-IPAPI = "https://api.ipify.org/?format=json"
+VER = "2.0"
 LATEST = "https://api.github.com/repos/bissisoft/torall/releases/latest"
 TORUID = "tor" if os.path.exists('/usr/bin/pacman') else "debian-tor"
 MARGIN = "        "
 
 
 class clr:
-    RED = '\033[31m'
-    BLUE = '\033[94m'
     END = '\033[0m'
     BOLD = '\033[1m'
+    RED = '\033[31m'
+    BLUE = '\033[94m'
     GREEN = '\033[92m'
     YELLOW = '\033[33m'
 
@@ -42,7 +40,7 @@ def print_logo():
          _/   ({Y}(  (O)  )){R}  // /  ______  \ \  \_\  \_
         /_____//{Y}\_____//{R}\_//  \_//     \_// \__//\__//
         {G}v{V} {B}- github.com/bissisoft/torall
-    """.format(R=clr.RED, G=clr.GREEN, B=clr.BLUE, Y=clr.YELLOW, V=VERSION))
+    """.format(R=clr.RED, G=clr.GREEN, B=clr.BLUE, Y=clr.YELLOW, V=VER))
     print(clr.END)
 
 
@@ -266,12 +264,25 @@ def change_id():
 
 def check_update():
     print_logo()
-    response = get(LATEST).json()
-    latest = response["tag_name"][1:]
-    if version.parse(latest) > version.parse(VERSION):
+    latest = '0'
+    interupted = False
+    try:
+        latest = subprocess.getoutput('curl -s --max-time 30 ' + LATEST)
+    except KeyboardInterrupt:
+        interupted = True
+    if not interupted and latest != '0':
+        try:
+            latest = loads(latest)["tag_name"][1:]
+        except JSONDecodeError:
+            # TODO: a better check for github api limit responses...
+            print(MARGIN + clr.RED + 'GitHub api limit reached')
+            print(MARGIN + 'Try again in a few minutes or with another ip')
+            print(clr.END)
+
+    if latest > VER:
         print(MARGIN + clr.GREEN + clr.BOLD + 'New update available!')
         print(clr.END)
-        print(MARGIN + 'Your TorAll version: ' + clr.RED + VERSION + clr.END)
+        print(MARGIN + 'Your TorAll version: ' + clr.RED + VER + clr.END)
         print(MARGIN + 'Latest TorAll version: ' + clr.GREEN + latest)
         print(clr.END)
         yes = {'yes', 'y', 'ye', ''}
@@ -299,7 +310,7 @@ def check_update():
                 msg = '\n' + MARGIN + "Please respond with 'yes' or 'no' "
     else:
         print(MARGIN + clr.RED + 'No new update available!\n' + clr.END)
-        print(MARGIN + 'Your version... ' + clr.GREEN + VERSION + clr.END)
+        print(MARGIN + 'Your version... ' + clr.GREEN + VER + clr.END)
         print(MARGIN + 'Latest version: ' + clr.GREEN + latest)
         print(clr.END)
         print(MARGIN + clr.BOLD + 'TorAll is up to date!')
