@@ -1,38 +1,31 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import os
-import sys
-import getopt
-import signal
-import subprocess
-from packaging import version
-from requests import get
-import time
+from os import geteuid, system, path, listdir
+from sys import argv, exit
+from getopt import getopt, GetoptError
+from subprocess import getoutput
+from json import loads, JSONDecodeError
+from time import sleep
 
-VERSION = "2.0"
-IPAPI = "https://api.ipify.org/?format=json"
+VER = "2.0"
 LATEST = "https://api.github.com/repos/bissisoft/torall/releases/latest"
-TORUID = "tor" if os.path.exists('/usr/bin/pacman') else "debian-tor"
+TORUID = "debian-tor" if path.exists('/usr/bin/apt') else "tor"
+TORURL = "https://check.torproject.org/api/ip"
 MARGIN = "        "
 
 
 class clr:
-    RED = '\033[31m'
-    BLUE = '\033[94m'
     END = '\033[0m'
     BOLD = '\033[1m'
+    RED = '\033[31m'
+    BLUE = '\033[94m'
     GREEN = '\033[92m'
     YELLOW = '\033[33m'
 
 
-def sigint_handler(signum, frame):
-    print("User interrupted! Stopping TorAll service...")
-    stop_torall()
-
-
 def print_logo():
-    os.system('clear')
+    system('clear')
     print(clr.RED + clr.BOLD)
     print("""
          _______________          ____  ___  ___
@@ -42,7 +35,7 @@ def print_logo():
          _/   ({Y}(  (O)  )){R}  // /  ______  \ \  \_\  \_
         /_____//{Y}\_____//{R}\_//  \_//     \_// \__//\__//
         {G}v{V} {B}- github.com/bissisoft/torall
-    """.format(R=clr.RED, G=clr.GREEN, B=clr.BLUE, Y=clr.YELLOW, V=VERSION))
+    """.format(R=clr.RED, G=clr.GREEN, B=clr.BLUE, Y=clr.YELLOW, V=VER))
     print(clr.END)
 
 
@@ -56,219 +49,292 @@ def usage():
         -u    --update    Check for updated version with option to upgrade
         -h    --help      Print this help and exit
     """)
-    sys.exit()
+    exit()
 
 
 def check_root():
-    if os.geteuid() != 0:
+    if geteuid() != 0:
         print("Run as root or with 'sudo' ^.^")
-        sys.exit(0)
-
-
-def backup_sysctl():
-    # print(MARGIN + clr.BLUE + 'Backing up sysctl...' + clr.END)
-    os.system('sysctl -a >/var/lib/torall/sysctl.conf.bak')
+        exit()
 
 
 def restore_sysctl():
-    # print(MARGIN + clr.BLUE + 'Restoring sysctl...' + clr.END)
-    os.system('sysctl -p /var/lib/torall/sysctl.conf.bak >/dev/null 2>&1')
+    system('sysctl -p /var/lib/torall/sysctl.conf.bak >/dev/null 2>&1')
+    sleep(0.5)
 
 
-def disable_ipv6():
+def set_new_sysctl():
+    system('sysctl -a >/var/lib/torall/sysctl.conf.bak')
     print(MARGIN + clr.BLUE + 'Disabling IPv6...' + clr.END)
-    os.system('sysctl -w net.ipv6.conf.all.disable_ipv6=1 >/dev/null')
-    os.system('sysctl -w net.ipv6.conf.default.disable_ipv6=1 >/dev/null')
+    system('sysctl -w net.ipv6.conf.all.disable_ipv6=1 >/dev/null 2>&1')
+    system('sysctl -w net.ipv6.conf.default.disable_ipv6=1 >/dev/null 2>&1')
+    sleep(0.5)
 
 
 def alert_if_running():
-    if os.path.exists('/var/lib/torall/started'):
+    if path.exists('/var/lib/torall/started'):
         print_logo()
         print(MARGIN + clr.GREEN + clr.BOLD + 'TorAll is running...' + clr.END)
         print(MARGIN + clr.BLUE + 'Fetching current IP... ' + clr.GREEN + ip())
+        print(clr.BOLD)
         print(MARGIN + 'All traffic is being redirected through TOR!')
         print(clr.END)
-        sys.exit()
+        exit()
 
 
 def alert_if_clearnet():
-    if not os.path.exists('/var/lib/torall/started'):
+    if not path.exists('/var/lib/torall/started'):
         print_logo()
         print(MARGIN + clr.RED + clr.BOLD + 'TorAll is NOT running!' + clr.END)
         print(MARGIN + clr.BLUE + 'Fetching current IP... ' + clr.RED + ip())
+        print(clr.BOLD)
         print(MARGIN + 'You are on the clearnet with your regular ip!')
         print(clr.END)
-        sys.exit()
+        exit()
 
 
 def switch_nameservers():
     print(MARGIN + clr.BLUE + 'Switching nameservers...' + clr.END)
-    os.system('cp /etc/resolv.conf /var/lib/torall/resolv.conf.bak')
-    os.system('cp /var/lib/torall/nameservers.conf /etc/resolv.conf')
+    system('cp /etc/resolv.conf /var/lib/torall/resolv.conf.bak')
+    system('cp /var/lib/torall/nameservers.conf /etc/resolv.conf')
+    sleep(0.5)
 
 
 def restore_nameservers():
     print(MARGIN + clr.BLUE + 'Restoring nameservers...' + clr.END)
-    os.system('mv /var/lib/torall/resolv.conf.bak /etc/resolv.conf')
+    system('mv /var/lib/torall/resolv.conf.bak /etc/resolv.conf')
+    sleep(0.5)
 
 
 def spoof_mac_addresses():
     print(MARGIN + clr.BLUE + 'Spoofing mac addresses...' + clr.END)
-    for interface in os.listdir('/sys/class/net/'):
+    for interface in listdir('/sys/class/net/'):
         if interface != 'lo' and interface[0] == 'e':
-            os.system('macchanger -r ' + interface + ' >/dev/null 2>&1')
+            system('macchanger -r ' + interface + ' >/dev/null 2>&1')
         elif interface != 'lo' and interface[0] == 'w':
-            os.system('ip link set ' + interface + ' down')
-            os.system('macchanger -r ' + interface + ' >/dev/null 2>&1')
-            os.system('ip link set ' + interface + ' up')
+            system('ip link set ' + interface + ' down')
+            system('macchanger -r ' + interface + ' >/dev/null 2>&1')
+            system('ip link set ' + interface + ' up')
+    sleep(1)
 
 
 def revert_mac_addresses():
     print(MARGIN + clr.BLUE + 'Resetting mac addresses...' + clr.END)
-    for interface in os.listdir('/sys/class/net/'):
+    for interface in listdir('/sys/class/net/'):
         if interface != 'lo' and interface[0] == 'e':
-            os.system('macchanger -p ' + interface + ' >/dev/null 2>&1')
+            system('macchanger -p ' + interface + ' >/dev/null 2>&1')
         elif interface != 'lo' and interface[0] == 'w':
-            os.system('ip link set ' + interface + ' down')
-            os.system('macchanger -p ' + interface + ' >/dev/null 2>&1')
-            os.system('ip link set ' + interface + ' up')
+            system('ip link set ' + interface + ' down')
+            system('macchanger -p ' + interface + ' >/dev/null 2>&1')
+            system('ip link set ' + interface + ' up')
+    sleep(1)
 
 
 def start_daemon():
     print(MARGIN + clr.BLUE + 'Starting new tor daemon...' + clr.END)
-    os.system('sudo -u ' + TORUID + ' tor -f /etc/tor/torallrc >/dev/null')
+    system('sudo -u ' + TORUID + ' tor -f /etc/tor/torallrc >/dev/null')
+    sleep(0.5)
 
 
 def stop_daemon():
     print(MARGIN + clr.BLUE + 'Stopping tor daemon...' + clr.END)
-    os.system('systemctl stop tor.service')
-    os.system('fuser -k 9051/tcp >/dev/null 2>&1')
+    system('systemctl stop tor.service')
+    system('fuser -k 9051/tcp >/dev/null 2>&1')
+    sleep(0.5)
 
 
 def disable_firewall():
-    if os.system('command -v ufw >/dev/null') == 0:
-        if os.system('! ufw status | grep -q inactive$') == 0:
+    if system('command -v ufw >/dev/null') == 0:
+        if system('! ufw status | grep -q inactive$') == 0:
             print(MARGIN + clr.BLUE + 'Disabling UFW firewall...')
-            os.system('ufw disable >/dev/null 2>&1')
+            system('ufw disable >/dev/null 2>&1')
         else:
             backup_iptables()
     else:
         backup_iptables()
+    sleep(0.5)
 
 
 def enable_firewall():
-    if os.path.exists('/var/lib/torall/iptables.rules.bak'):
+    if path.exists('/var/lib/torall/iptables.rules.bak'):
         restore_iptables()
-        os.system('rm /var/lib/torall/iptables.rules.bak')
+        system('rm /var/lib/torall/iptables.rules.bak')
     else:
         print(MARGIN + clr.BLUE + 'Enabling back UFW firewall...')
-        os.system('ufw enable >/dev/null 2>&1')
+        system('ufw enable >/dev/null 2>&1')
+    sleep(0.5)
 
 
 def backup_iptables():
     print(MARGIN + clr.BLUE + 'Backing up iptables rules...' + clr.END)
-    os.system('iptables-save >/var/lib/torall/iptables.rules.bak')
+    system('iptables-save >/var/lib/torall/iptables.rules.bak')
+    sleep(0.5)
 
 
 def restore_iptables():
     print(MARGIN + clr.BLUE + 'Restoring iptables rules...' + clr.END)
-    os.system('iptables-restore </var/lib/torall/iptables.rules.bak')
+    system('iptables-restore </var/lib/torall/iptables.rules.bak')
+    sleep(0.5)
 
 
 def set_iptables():
-    print(MARGIN + clr.BLUE + 'Setting up new iptables rules...' + clr.END)
+    print(MARGIN + clr.BLUE + 'Setting up iptables rules...' + clr.END)
     iptables_rules = open('/var/lib/torall/iptables.conf').read()
-    os.system(iptables_rules % subprocess.getoutput('id -ur ' + TORUID))
+    system(iptables_rules % getoutput('id -ur ' + TORUID))
+    sleep(0.5)
 
 
 def flush_iptables():
     # print(MARGIN + clr.BLUE + 'Flushing iptables...' + clr.END)
-    os.system('iptables -P INPUT ACCEPT')
-    os.system('iptables -P FORWARD ACCEPT')
-    os.system('iptables -P OUTPUT ACCEPT')
-    os.system('iptables -t nat -F')
-    os.system('iptables -t mangle -F')
-    os.system('iptables -F')
-    os.system('iptables -X')
+    system('iptables -P INPUT ACCEPT')
+    system('iptables -P FORWARD ACCEPT')
+    system('iptables -P OUTPUT ACCEPT')
+    system('iptables -t nat -F')
+    system('iptables -t mangle -F')
+    system('iptables -F')
+    system('iptables -X')
+    sleep(0.5)
 
 
 def restart_network_manager():
     print(MARGIN + clr.BLUE + 'Restarting NetworkManager...' + clr.END)
-    os.system('systemctl restart NetworkManager.service')
+    system('systemctl restart --now NetworkManager.service')
+    sleep(1)
 
 
 def ip():
-    while True:
+    ip = 'unknown'
+    try:
+        ip = getoutput('curl -s --max-time 10 https://api.ipify.org')
+        sleep(1)
+    except KeyboardInterrupt:
+        return "User interrupted!"
+    if ip == 'unknown':
         try:
-            response = get(IPAPI).json()
-            ip = response["ip"]
-        except:
-            continue
-        break
+            ip = getoutput('curl -s --max-time 10 https://ip.me')
+            sleep(1)
+        except KeyboardInterrupt:
+            return "User interrupted!"
     return ip
 
 
-signal.signal(signal.SIGINT, sigint_handler)
+def check_tor_network(task):
+    if task == 'change':
+        print(MARGIN + clr.BLUE + 'Requesting new onion circuit...' + clr.END)
+    else:
+        print(MARGIN + clr.BLUE + 'Checking tor network status...' + clr.END)
+    try:
+        status = getoutput('curl -s --max-time 30 ' + TORURL)
+        sleep(1)
+        connected_to_tor = loads(status)['IsTor']
+        tor_ip = loads(status)['IP']
+    except JSONDecodeError:
+        print('JSONDecodeError... TODO!')
+        print('status = ' + status)
+        # TODO: backtrack!
+        exit()
+    except KeyboardInterrupt:
+        print('user interupted... TODO!')
+        # TODO: backtrack!
+        exit()
+    if task == 'start' and connected_to_tor:
+        system('touch /var/lib/torall/started')
+        exit_node = clr.GREEN + tor_ip
+        print(MARGIN + clr.BLUE + 'Current exit node is: ' + exit_node)
+        print(clr.BOLD)
+        print(MARGIN + 'All traffic is being redirected through TOR!')
+        print(clr.END)
+    elif task == 'start' and not connected_to_tor:
+        # TODO: backtrack!
+        print(clr.RED + clr.BOLD)
+        print(MARGIN + 'Huston we have a problem!!')
+        print(clr.END)
+    elif task == 'stop' and connected_to_tor:
+        # TODO: give me something to do!
+        print(clr.GREEN + clr.BOLD)
+        print(MARGIN + 'Hmmm you are still on the TOR network!')
+        print(clr.END)
+    elif task == 'stop' and not connected_to_tor:
+        system('rm /var/lib/torall/started')
+        home_ip = clr.RED + tor_ip
+        print(MARGIN + clr.BLUE + 'Fetching current IP... ' + home_ip)
+        print(clr.BOLD)
+        print(MARGIN + 'You are on the clearnet with your regular ip!')
+        print(clr.END)
+    elif task == 'change' and connected_to_tor:
+        exit_node = clr.GREEN + tor_ip
+        print(MARGIN + clr.BLUE + 'Fetching new IP... ' + exit_node)
+        print(clr.BOLD)
+        print(MARGIN + 'All traffic is being redirected through TOR!')
+        print(clr.END)
+    elif task == 'change' and not connected_to_tor:
+        # TODO: backtrack!
+        print(clr.RED + clr.BOLD)
+        print(MARGIN + 'Huston we have a problem!!')
+        print(clr.END)
+    exit()
 
 
 def start_torall():
     print_logo()
     alert_if_running()
     print(MARGIN + clr.GREEN + clr.BOLD + 'STARTING TorAll...' + clr.END)
-    if os.system('systemctl is-active --quiet tor') == 0:
+    if system('systemctl is-active --quiet tor') == 0:
         stop_daemon()
+    set_new_sysctl()
     switch_nameservers()
-    backup_sysctl()
-    disable_ipv6()
     spoof_mac_addresses()
     start_daemon()
     disable_firewall()
     set_iptables()
-    print(MARGIN + clr.BLUE + 'Fetching new IP... ' + clr.GREEN + ip())
-    print(clr.BOLD)
-    print(MARGIN + 'All traffic is being redirected through TOR!')
-    print(clr.END)
-    os.system('touch /var/lib/torall/started')
+    check_tor_network('start')
 
 
 def stop_torall():
     print_logo()
     alert_if_clearnet()
     print(MARGIN + clr.RED + clr.BOLD + 'STOPPING TorAll service...' + clr.END)
+    stop_daemon()
     restore_nameservers()
     restore_sysctl()
     flush_iptables()
-    stop_daemon()
     revert_mac_addresses()
     enable_firewall()
     restart_network_manager()
-    print(MARGIN + clr.BLUE + 'Fetching current IP... ' + clr.RED + ip())
-    print(clr.BOLD)
-    print(MARGIN + 'You are on the clearnet with your regular ip!')
-    print(clr.END)
-    os.system('rm /var/lib/torall/started')
+    check_tor_network('stop')
 
 
 def change_id():
     print_logo()
     alert_if_clearnet()
     print(MARGIN + clr.GREEN + clr.BOLD + 'Changing tor identity...' + clr.END)
-    print(MARGIN + clr.BLUE + 'Requesting new onion circuit...' + clr.END)
-    os.system('fuser -k 9051/tcp >/dev/null 2>&1')
-    time.sleep(1)
-    os.system('sudo -u ' + TORUID + ' tor -f /etc/tor/torallrc >/dev/null')
-    print(MARGIN + clr.BLUE + 'Fetching new IP... ' + clr.GREEN + ip())
-    print(clr.END)
+    system('fuser -k 9051/tcp >/dev/null 2>&1')
+    sleep(1)
+    system('sudo -u ' + TORUID + ' tor -f /etc/tor/torallrc >/dev/null')
+    check_tor_network('change')
 
 
 def check_update():
     print_logo()
-    response = get(LATEST).json()
-    latest = response["tag_name"][1:]
-    if version.parse(latest) > version.parse(VERSION):
+    latest = '0'
+    interupted = False
+    try:
+        latest = getoutput('curl -s --max-time 30 ' + LATEST)
+        sleep(1)
+    except KeyboardInterrupt:
+        interupted = True
+    if not interupted and latest != '0':
+        try:
+            latest = loads(latest)["tag_name"][1:]
+        except JSONDecodeError:
+            # TODO: a better check for github api limit responses...
+            print(MARGIN + clr.RED + 'GitHub api limit reached')
+            print(MARGIN + 'Try again in a few minutes or with another ip')
+            print(clr.END)
+    if latest > VER:
         print(MARGIN + clr.GREEN + clr.BOLD + 'New update available!')
         print(clr.END)
-        print(MARGIN + 'Your TorAll version: ' + clr.RED + VERSION + clr.END)
+        print(MARGIN + 'Your TorAll version: ' + clr.RED + VER + clr.END)
         print(MARGIN + 'Latest TorAll version: ' + clr.GREEN + latest)
         print(clr.END)
         yes = {'yes', 'y', 'ye', ''}
@@ -280,14 +346,14 @@ def check_update():
             if choice in yes:
                 print('\n' + MARGIN + clr.GREEN + 'Updating your version...')
                 print(clr.END)
-                os.system('mv /usr/bin/torall /tmp/torall.old')
-                os.system(
-                    'cd /tmp && git clone  https://github.com/bissisoft/torall')
-                os.system('cd /tmp/torall && sudo ./build.sh')
+                system('mv /usr/bin/torall /tmp/torall.old')
+                system('cd /tmp')
+                system('git clone https://github.com/bissisoft/torall')
+                system('cd /tmp/torall && sudo ./build.sh')
                 print('\n' + MARGIN + clr.GREEN + 'Done!' + clr.END + '\n')
                 input(MARGIN + clr.BOLD + 'Press any key to restart ^.^  ')
-                os.system('torall')
-                sys.exit()
+                system('torall')
+                exit()
             elif choice in no:
                 print('\n' + MARGIN + clr.RED + 'Update aborted by user')
                 print(clr.END)
@@ -296,7 +362,7 @@ def check_update():
                 msg = '\n' + MARGIN + "Please respond with 'yes' or 'no' "
     else:
         print(MARGIN + clr.RED + 'No new update available!\n' + clr.END)
-        print(MARGIN + 'Your version... ' + clr.GREEN + VERSION + clr.END)
+        print(MARGIN + 'Your version... ' + clr.GREEN + VER + clr.END)
         print(MARGIN + 'Latest version: ' + clr.GREEN + latest)
         print(clr.END)
         print(MARGIN + clr.BOLD + 'TorAll is up to date!')
@@ -304,19 +370,18 @@ def check_update():
 
 def main():
     check_root()
-    if len(sys.argv) <= 1:
+    if len(argv) <= 1:
         check_update()
         usage()
     try:
-        (opts, args) = getopt.getopt(
-            sys.argv[1:], 'sxcuh', [
+        (opts, args) = getopt(
+            argv[1:], 'sxcuh', [
                 'start', 'stop', 'change', 'update', 'help']
         )
         if len(opts) == 0:
             usage()
-    except (getopt.GetoptError):
+    except GetoptError:
         usage()
-        sys.exit(2)
     for (o, a) in opts:
         if o in ('-s', '--start'):
             start_torall()
