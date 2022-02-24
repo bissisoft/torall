@@ -203,29 +203,28 @@ def restart_network_manager():
 
 
 def ip():
-    ip = 'unknown'
+    ip = ''
     try:
-        ip = getoutput('curl -s --max-time 10 https://api.ipify.org')
-        sleep(1)
+        while ip == '':
+            ip = getoutput('curl -s --max-time 10 https://api.ipify.org')
+            if ip == '':
+                ip = getoutput('curl -s --max-time 10 https://ip.me')
     except KeyboardInterrupt:
         return "User interrupted!"
-    if ip == 'unknown':
-        try:
-            ip = getoutput('curl -s --max-time 10 https://ip.me')
-            sleep(1)
-        except KeyboardInterrupt:
-            return "User interrupted!"
     return ip
 
 
 def check_tor_network(task):
+    status = ''
     if task == 'change':
         print(MARGIN + clr.BLUE + 'Requesting new onion circuit...' + clr.END)
     else:
         print(MARGIN + clr.BLUE + 'Checking tor network status...' + clr.END)
     try:
-        status = getoutput('curl -s --max-time 30 ' + TORURL)
-        sleep(1)
+        while status == '':
+            status = getoutput('curl -s --max-time 10 ' + TORURL)
+            if status == '':
+                sleep(1)
         connected_to_tor = loads(status)['IsTor']
         tor_ip = loads(status)['IP']
     except JSONDecodeError:
